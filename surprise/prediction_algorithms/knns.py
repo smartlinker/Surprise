@@ -68,7 +68,7 @@ class KNNBasic(SymmetricAlgo):
     .. math::
         \hat{r}_{ui} = \\frac{
         \\sum\\limits_{j \in N^k_u(i)} \\text{sim}(i, j) \cdot r_{uj}}
-        {\\sum\\limits_{j \in N^k_u(j)} \\text{sim}(i, j)}
+        {\\sum\\limits_{j \in N^k_u(i)} \\text{sim}(i, j)}
 
     depending on the ``user_based`` field of the ``sim_options`` parameter.
 
@@ -78,7 +78,7 @@ class KNNBasic(SymmetricAlgo):
             ``40``.
         min_k(int): The minimum number of neighbors to take into account for
             aggregation. If there are not enough neighbors, the prediction is
-            set the the global mean of all ratings. Default is ``1``.
+            set to the global mean of all ratings. Default is ``1``.
         sim_options(dict): A dictionary of options for the similarity
             measure. See :ref:`similarity_measures_configuration` for accepted
             options.
@@ -233,7 +233,7 @@ class KNNBaseline(SymmetricAlgo):
     .. math::
         \hat{r}_{ui} = b_{ui} + \\frac{ \\sum\\limits_{j \in N^k_u(i)}
         \\text{sim}(i, j) \cdot (r_{uj} - b_{uj})} {\\sum\\limits_{j \in
-        N^k_u(j)} \\text{sim}(i, j)}
+        N^k_u(i)} \\text{sim}(i, j)}
 
     depending on the ``user_based`` field of the ``sim_options`` parameter. For
     the best predictions, use the :func:`pearson_baseline

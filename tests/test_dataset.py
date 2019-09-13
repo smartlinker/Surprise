@@ -14,11 +14,11 @@ from surprise import BaselineOnly
 from surprise import Dataset
 from surprise import Reader
 from surprise.builtin_datasets import get_dataset_dir
+from surprise.model_selection import PredefinedKFold
+from surprise.model_selection import KFold
 
 
 random.seed(1)
-reader = Reader(line_format='user item rating', sep=' ', skip_lines=3,
-                rating_scale=(1, 5))
 
 
 def test_wrong_file_name():
@@ -26,17 +26,13 @@ def test_wrong_file_name():
     wrong_files = [('does_not_exist', 'does_not_either')]
 
     with pytest.raises(ValueError):
-        Dataset.load_from_folds(folds_files=wrong_files, reader=reader)
+        Dataset.load_from_folds(folds_files=wrong_files, reader=Reader())
 
 
-def test_build_full_trainset():
+def test_build_full_trainset(toy_data):
     """Test the build_full_trainset method."""
 
-    custom_dataset_path = (os.path.dirname(os.path.realpath(__file__)) +
-                           '/custom_dataset')
-    data = Dataset.load_from_file(file_path=custom_dataset_path, reader=reader)
-
-    trainset = data.build_full_trainset()
+    trainset = toy_data.build_full_trainset()
 
     assert len(trainset.ur) == 5
     assert len(trainset.ir) == 2
@@ -44,84 +40,18 @@ def test_build_full_trainset():
     assert trainset.n_items == 2
 
 
-def test_no_call_to_split():
-    """Ensure, as mentioned in the split() docstring, that even if split is not
-    called then the data is split with 5 folds after being shuffled."""
-
-    custom_dataset_path = (os.path.dirname(os.path.realpath(__file__)) +
-                           '/custom_dataset')
-    data = Dataset.load_from_file(file_path=custom_dataset_path, reader=reader)
-
-    with pytest.warns(UserWarning):
-        assert len(list(data.folds())) == 5
-
-    # make sure data has been shuffled. If not shuffled, the users in the
-    # testsets would be 0, 1, 2... 4 (in that order).
-    with pytest.warns(UserWarning):
-        users = [int(testset[0][0][-1]) for (_, testset) in data.folds()]
-    assert users != list(range(5))
-
-
-def test_split():
-    """Test the split method."""
-
-    custom_dataset_path = (os.path.dirname(os.path.realpath(__file__)) +
-                           '/custom_dataset')
-    data = Dataset.load_from_file(file_path=custom_dataset_path, reader=reader)
-
-    # Test the shuffle parameter
-    # Make sure data has not been shuffled. If not shuffled, the users in the
-    # testsets are 0, 1, 2... 4 (in that order).
-    with pytest.warns(UserWarning):
-        data.split(n_folds=5, shuffle=False)
-        users = [int(testset[0][0][-1]) for (_, testset) in data.folds()]
-        assert users == list(range(5))
-
-    # Test the shuffle parameter
-    # Make sure that when called two times without shuffling, folds are the
-    # same.
-    with pytest.warns(UserWarning):
-        data.split(n_folds=3, shuffle=False)
-        testsets_a = [testset for (_, testset) in data.folds()]
-        data.split(n_folds=3, shuffle=False)
-        testsets_b = [testset for (_, testset) in data.folds()]
-        assert testsets_a == testsets_b
-
-    # We'll now shuffle b and check that folds are different.
-    with pytest.warns(UserWarning):
-        data.split(n_folds=3, shuffle=True)
-        testsets_b = [testset for (_, testset) in data.folds()]
-        assert testsets_a != testsets_b
-
-    # Ensure that folds are the same if split is not called again
-    with pytest.warns(UserWarning):
-        testsets_a = [testset for (_, testset) in data.folds()]
-        testsets_b = [testset for (_, testset) in data.folds()]
-        assert testsets_a == testsets_b
-
-    # Test n_folds parameter
-    with pytest.warns(UserWarning):
-        data.split(5)
-        assert len(list(data.folds())) == 5
-
-    with pytest.raises(ValueError):
-        data.split(10)  # Too big (greater than number of ratings)
-
-    with pytest.raises(ValueError):
-        data.split(1)  # Too low (must be >= 2)
-
-
-def test_trainset_testset():
+def test_trainset_testset(toy_data_reader):
     """Test the construct_trainset and construct_testset methods."""
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     folds_files = [(current_dir + '/custom_train',
                     current_dir + '/custom_test')]
 
-    data = Dataset.load_from_folds(folds_files=folds_files, reader=reader)
+    data = Dataset.load_from_folds(folds_files=folds_files,
+                                   reader=toy_data_reader)
 
-    with pytest.warns(UserWarning):
-        trainset, testset = next(data.folds())
+    pkf = PredefinedKFold()
+    trainset, testset = next(pkf.split(data))
 
     # test ur
     ur = trainset.ur
@@ -194,11 +124,6 @@ def test_load_form_df():
     reader = Reader(rating_scale=(1, 5))
     data = Dataset.load_from_df(df[['userID', 'itemID', 'rating']], reader)
 
-    # Assert split and folds can be used without problems
-    with pytest.warns(UserWarning):
-        data.split(2)
-        assert sum(1 for _ in data.folds()) == 2
-
     # assert users and items are correctly mapped
     trainset = data.build_full_trainset()
     assert trainset.knows_user(trainset.to_inner_uid(9))
@@ -232,9 +157,7 @@ def test_build_anti_testset():
 
     reader = Reader(rating_scale=(1, 5))
     data = Dataset.load_from_df(df[['userID', 'itemID', 'rating']], reader)
-    with pytest.warns(UserWarning):
-        data.split(2)
-        trainset, __testset = next(data.folds())
+    trainset, _ = next(KFold(n_splits=2).split(data))
     # fill with some specific value
     for fillvalue in (0, 42., -1):
         anti = trainset.build_anti_testset(fill=fillvalue)

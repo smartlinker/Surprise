@@ -9,7 +9,7 @@ use-case examples that are not part of the User Guide.
 How to get the top-N recommendations for each user
 ----------------------------------------------------------
 
-Here is an example where we retrieve retrieve the top-10 items with highest
+Here is an example where we retrieve the top-10 items with highest
 rating prediction for each user in the MovieLens-100k dataset. We first train
 an SVD algorithm on the whole dataset, and then predict all the ratings for the
 pairs (user, item) that are not in the training set. We then retrieve the
@@ -200,7 +200,7 @@ seed of the RNG at the beginning of your program:
 
     my_seed = 0
     random.seed(my_seed)
-    numpy.random.seed(my_seed)
+    np.random.seed(my_seed)
 
 .. _data_folder:
 
@@ -211,3 +211,9 @@ By default, datasets downloaded by Surprise will be saved in the
 ``'~/.surprise_data'`` directory. This is also where dump files will be stored.
 You can change the default directory by setting the ``'SURPRISE_DATA_FOLDER'``
 environment variable.
+
+Can Surprise support content-based data or implicit ratings?
+------------------------------------------------------------
+
+No: this is out of scope for surprise. Surprise was designed for explicit
+ratings.
